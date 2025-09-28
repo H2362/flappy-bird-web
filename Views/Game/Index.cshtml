@@ -1,0 +1,162 @@
+﻿@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Flappy Bird</title>
+</head>
+<body>
+    <h2>Flappy Bird</h2>
+
+    <!-- Oyun Alanı -->
+    <canvas id="gameCanvas" width="900" height="600" style="border:1px solid black;"></canvas>
+
+    <!-- Başlatma ve yeniden başlatma butonları -->
+    <div style="text-align:center; margin-top:20px;">
+        <button id="startBtn" onclick="startGame()"
+                style="font-size:18px; padding:10px 20px;">
+            Başla
+        </button>
+
+        <button id="restartBtn" onclick="restartGame()"
+                style="display:none; font-size:18px; padding:10px 20px;">
+            Yeniden Başla
+        </button>
+    </div>
+
+    <script>
+        var canvas = document.getElementById("gameCanvas");
+        var ctx = canvas.getContext("2d");
+
+        var gameStarted = false;
+        var gameOver = false;
+        var score = 0;
+        var highScore = localStorage.getItem("highScore") || 0;
+
+        // Kuş
+        var birdY = 200;
+        var gravity = 4;
+        var lift = -60;
+        var birdSize = 40;
+        var birdImg = new Image();
+        birdImg.src = "/Content/images/bird.png";
+
+        // Arka plan (artık background.jpg)
+        var bgImg = new Image();
+        bgImg.src = "/Content/images/background.jpg";
+
+        // Borular
+        var pipes = [];
+        var pipeWidth = 80;
+        var gap = 200;
+        var pipeSpeed = 3;
+
+        // Başlatma fonksiyonu
+        function startGame() {
+            gameStarted = true;
+            document.getElementById("startBtn").style.display = "none";
+            // İlk boruyu ekle
+            pipes = [];
+            pipes.push({ x: canvas.width, y: Math.floor(Math.random() * (canvas.height - gap - 100)), passed: false });
+        }
+
+        // Yeniden başlatma fonksiyonu
+        function restartGame() {
+            location.reload();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Arka planı çiz
+            ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+
+            // Oyun başlamadıysa sadece mesaj göster
+            if (!gameStarted) {
+                ctx.font = "32px Arial";
+                ctx.fillStyle = "black";
+                ctx.fillText("Başlamak için 'Başla' tuşuna basın", canvas.width / 2 - 220, canvas.height / 2);
+                return;
+            }
+
+            // Oyun bittiyse ekrana mesaj ve buton göster
+            if (gameOver) {
+                ctx.font = "40px Arial";
+                ctx.fillStyle = "red";
+                ctx.fillText("GAME OVER", canvas.width / 2 - 120, canvas.height / 2);
+
+                if (score > highScore) {
+                    highScore = score;
+                    localStorage.setItem("highScore", highScore);
+                }
+
+                ctx.font = "24px Arial";
+                ctx.fillStyle = "black";
+                ctx.fillText("Final Score: " + score, canvas.width / 2 - 80, canvas.height / 2 + 40);
+                ctx.fillText("High Score: " + highScore, canvas.width / 2 - 90, canvas.height / 2 + 80);
+
+                document.getElementById("restartBtn").style.display = "inline-block";
+                return;
+            }
+
+            // Kuşu çiz
+            ctx.drawImage(birdImg, 50, birdY, birdSize, birdSize);
+
+            // Yerçekimi uygula
+            birdY += gravity;
+
+            // Boruları çiz ve hareket ettir
+            for (var i = 0; i < pipes.length; i++) {
+                var p = pipes[i];
+
+                ctx.fillStyle = "blue";
+                ctx.fillRect(p.x, 0, pipeWidth, p.y);
+                ctx.fillRect(p.x, p.y + gap, pipeWidth, canvas.height - (p.y + gap));
+
+                p.x -= pipeSpeed;
+
+                // Çarpışma kontrolü
+                if (50 < p.x + pipeWidth && 50 + birdSize > p.x &&
+                    (birdY < p.y || birdY + birdSize > p.y + gap)) {
+                    gameOver = true;
+                }
+
+                // Skor kontrolü
+                if (!p.passed && p.x + pipeWidth < 50) {
+                    score++;
+                    p.passed = true;
+                }
+            }
+
+            // Yeni boru ekle
+            if (pipes.length > 0 && pipes[pipes.length - 1].x < canvas.width - 300) {
+                pipes.push({ x: canvas.width, y: Math.floor(Math.random() * (canvas.height - gap - 100)), passed: false });
+            }
+
+            // Eski boruları sil
+            if (pipes.length > 0 && pipes[0].x + pipeWidth < 0) {
+                pipes.shift();
+            }
+
+            // Skor ve high score
+            ctx.font = "24px Arial";
+            ctx.fillStyle = "black";
+            ctx.fillText("Score: " + score, 20, 40);
+            ctx.fillText("High: " + highScore, 20, 70);
+        }
+
+        // Zıplama
+        document.addEventListener("keydown", function (event) {
+            if (event.code === "Space" && !gameOver && gameStarted) {
+                birdY += lift;
+            }
+        });
+
+        // Oyun döngüsü
+        setInterval(draw, 30);
+    </script>
+</body>
+</html>
